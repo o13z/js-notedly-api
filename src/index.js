@@ -5,10 +5,12 @@ require('dotenv').config();
 const db = require('./db');
 const models = require('./models');
 
-// Запускаем сервер на порте, указанном в файле .env, или на порте 4000
-const port = process.env.PORT || 4000;
+/* // Запускаем сервер на порте, указанном в файле .env, или на порте 4000
+const port = process.env.PORT ?? 4000;
 // Сохраняем значение DB_HOST в виде переменной
-const DB_HOST = process.env.DB_HOST;
+const DB_HOST = process.env.DB_HOST; */
+
+const { port = 4000, DB_HOST } = process.env;
 
 // Строим схему, используя язык схем GraphQL
 const typeDefs = gql`
@@ -20,7 +22,7 @@ const typeDefs = gql`
   type Query {
     hello: String
     notes: [Note!]!
-    note(id: ID!): Note!
+    note(id: ID!): Note
   }
   type Mutation {
     newNote(content: String!): Note!
@@ -31,22 +33,17 @@ const typeDefs = gql`
 const resolvers = {
   Query: {
     hello: () => 'Hello world!',
-    notes: async () => {
-      return await models.Note.find();
-    },
-    note: async (parent, args) => {
-      return await models.Note.findById(args.id);
-    },
+    notes: async () => await models.Note.find(),
+    note: async (_, args) => await models.Note.findById(args.id),
   },
   Mutation: {
-    newNote: async (parent, args) => {
-      return await models.Note.create({
+    newNote: async (_, args) =>
+      await models.Note.create({
         content: args.content,
-        author: 'Adam Scott'
-      });
-    }
-  }
-}; 
+        author: 'Adam Scott',
+      }),
+  },
+};
 
 const app = express();
 // Подключаем БД
@@ -56,9 +53,10 @@ db.connect(DB_HOST);
 const server = new ApolloServer({ typeDefs, resolvers });
 
 // Применяем промежуточное ПО Apollo GraphQL и указываем путь к /api
-server.applyMiddleware({ app, path: '/api' });
+server.applyMiddleware({ app, path: '/js-notedly-api' });
+
 app.listen({ port }, () =>
   console.log(
-  `GraphQL Server running at http://localhost:${port}${server.graphqlPath}`
-  )
-)
+    `GraphQL Server running at http://localhost:${port}${server.graphqlPath}`,
+  ),
+);
